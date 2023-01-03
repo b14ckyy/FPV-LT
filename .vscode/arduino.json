@@ -1,5 +1,4 @@
 {
     "port": "COM12",
-    "board": "arduino:avr:mega",
-    "sketch": "FPV-LT.ino"
+    "board": "arduino:avr:mega"
 }
