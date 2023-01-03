@@ -7,7 +7,7 @@ int brightnessThreshold = 10;   // threshold in mV to detect image change on scr
 bool printRaw = true;           // Print raw measurement data of the last run over serial
 bool printEveryResult = true;   // Print every measurement over Serial
 bool useSevenSegDisplay = true; // Use seven segment Display outputs (Only Arduino Mega)
-bool useOledDisplay = false;    // Enable SSD1306 Display output. Do not enable if useSevenSegDisplay is used
+bool useOledDisplay = true;    // Enable SSD1306 Display output. Do not enable if useSevenSegDisplay is used
 
 //************************DON'T TOUCH***********************
 #include <Adafruit_SSD1306.h>
