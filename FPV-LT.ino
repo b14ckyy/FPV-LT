@@ -1,19 +1,21 @@
+
+
+//*************************SETTINGS*************************
+int repeats = 5;                // Number of test iterations to average result
+int pauseTime = 1500;           // Time between measurements to let camera finish adjustment (in ms)
+int brightnessThreshold = 10;   // threshold in mV to detect image change on screen. Raise if video noise causes false triggers
+bool printRaw = true;           // Print raw measurement data of the last run over serial
+bool printEveryResult = true;   // Print every measurement over Serial
+bool useSevenSegDisplay = true; // Use seven segment Display outputs (Only Arduino Mega)
+bool useOledDisplay = false;    // Enable SSD1306 Display output. Do not enable if useSevenSegDisplay is used
+
+//************************DON'T TOUCH***********************
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_GFX.h>
 #include <Wire.h>
 #include <SevSeg.h>
 // https://github.com/DeanIsMe/SevSeg
 
-//*************************SETTINGS*************************
-int repeats = 5;                 // Number of test iterations to average result
-int pauseTime = 1500;            // Time between measurements to let camera finish adjustment (in ms)
-int brightnessThreshold = 10;    // threshold in mV to detect image change on screen. Raise if video noise causes false triggers
-bool printRaw = true;            // Print raw measurement data of the last run over serial
-bool printEveryResult = true;    // Print every measurement over Serial
-bool useSevenSegDisplay = false; // Use seven segment Display outputs (Only Arduino Mega)
-bool useOledDisplay = true;      // Enable SSD1306 Display output
-
-//************************DON'T TOUCH***********************
 unsigned int Uptime;
 unsigned int Timestamps[1000];
 unsigned int ScreenBright[1000];
@@ -23,8 +25,9 @@ float latencyMax = 0;
 float latencyMin = 1023;
 bool start = 0;
 bool latencySet = 0;
-unsigned long displayTime = 0;
 bool run = false;
+bool oledResultWritten = false;
+unsigned long displayTime = 0;
 int baseline = 0;
 SevSeg sevseg;
 
@@ -41,8 +44,9 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define LOGO_HEIGHT 51
 #define LOGO_WIDTH 128
 #define SSD1306_NO_SPLASH
-static const unsigned char PROGMEM IFWGLogo[] = {
-    // 'INAV Fixed Wing Group - logo, 128x52px
+
+static const unsigned char PROGMEM BootLogo[] = {
+    // Boot Logo. Don't forget to change LOGO_HEIGHT and LOGO_WIDTH
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -105,7 +109,7 @@ void setup()
   pinMode(LEDr, OUTPUT);
   pinMode(LEDw, OUTPUT);
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS) && useOledDisplay == true)
   {
     Serial.println(F("SSD1306 allocation failed"));
     for (;;)
@@ -118,18 +122,22 @@ void setup()
   bool resistorsOnSegments = 0;
   sevseg.begin(COMMON_CATHODE, numDigits, digitPins, segmentPins, resistorsOnSegments);
   sevseg.setBrightness(10);
-  display.clearDisplay();
-  display.drawBitmap((SCREEN_WIDTH - LOGO_WIDTH) / 2, (SCREEN_HEIGHT - LOGO_HEIGHT) / 2, IFWGLogo, LOGO_WIDTH, LOGO_HEIGHT, 1);
-  display.display();
-  delay(3000);
-  display.clearDisplay();
-  display.setTextSize(3);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(16, 25);
-  display.cp437(true);
-  display.write("READY!");
-  display.setTextSize(1);
-  display.display();
+
+  if (useOledDisplay == true)
+  {
+    display.clearDisplay();
+    display.drawBitmap((SCREEN_WIDTH - LOGO_WIDTH) / 2, (SCREEN_HEIGHT - LOGO_HEIGHT) / 2, BootLogo, LOGO_WIDTH, LOGO_HEIGHT, 1);
+    display.display();
+    delay(3000);
+    display.clearDisplay();
+    display.setTextSize(3);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(16, 25);
+    display.cp437(true);
+    display.write("READY!");
+    display.setTextSize(1);
+    display.display();
+  }
 }
 
 void loop()
@@ -138,7 +146,10 @@ void loop()
   analogWrite(LEDg, 32);
   digitalWrite(LEDw, LOW);
   float latency[repeats];
-  sevseg.refreshDisplay();
+  if (useSevenSegDisplay == true)
+  {
+    sevseg.refreshDisplay();
+  }
 
   // Starting test procedure if Button has set "start" variable to 1
   if (start == 1)
@@ -150,6 +161,12 @@ void loop()
     latencyMax = 0;
     latencyMin = 1023;
     run = true;
+
+    if (useOledDisplay == true)
+    {
+      display.clearDisplay();
+    }
+
     display.clearDisplay();
 
     // Title for Print all Latency Measurements
@@ -169,7 +186,22 @@ void loop()
       }
       digitalWrite(LEDw, LOW);
 
-      display.clearDisplay();
+      // Output OLED Display Coordinate system
+      if (useOledDisplay == true)
+      {
+        display.clearDisplay();
+        display.drawLine(6, 0, 6, 54, SSD1306_WHITE);
+        display.drawLine(6, 54, 127, 54, SSD1306_WHITE);
+        display.setCursor(0, 0);
+        display.write("1");
+        display.setCursor(0, 46);
+        display.write("0");
+        display.setCursor(110, 46);
+        display.write("100");
+        display.setCursor(0, 56);
+        display.write("Latency: ");
+      }
+
       // Check for brightness flank timestamp
       for (int j = 0; j < 1000; j++)
       {
@@ -183,34 +215,32 @@ void loop()
           Serial.print(": ");
           Serial.print(latency[r] / 10);
           Serial.print("ms\n");
-
-          // Output OLED Display Content
-          display.drawLine(6, 0, 6, 54, SSD1306_WHITE);
-          display.drawLine(6, 54, 127, 54, SSD1306_WHITE);
-          display.setCursor(0, 0);
-          display.write("1");
-          display.setCursor(0, 46);
-          display.write("0");
-          display.setCursor(110, 46);
-          display.write("100");
-          display.setCursor(0, 56);
-          display.write("Latency: ");
-          display.print(latency[r] / 10);
-          display.display();
+          if (useOledDisplay == true)
+          {
+            // Write Latency on OLED
+            display.print(latency[r] / 10);
+            display.display();
+          }
         }
       }
       // Draw Graph
-      for (int j = 0; j < 1000; j += 5)
+      if (useOledDisplay == true)
       {
-        display.drawPixel(((Timestamps[j] / 8) + 6), (((int)ScreenBright[j] / -14) + 54), SSD1306_WHITE);
+        for (int j = 0; j < 1000; j += 5)
+        {
+          display.drawPixel(((Timestamps[j] / 8) + 6), (((int)ScreenBright[j] / -14) + 54), SSD1306_WHITE);
+        }
+        display.display();
       }
-      display.display();
 
       // Time delay for camera to readjust after each measurement and show current measurement on displays
-      for (uint32_t tStart = millis(); (millis() - tStart) < pauseTime;)
+      for (uint32_t tStart = millis(); (millis() - tStart) < pauseTime; useSevenSegDisplay == true)
       {
-        sevseg.setNumber(latency[r], 1);
-        sevseg.refreshDisplay();
+        if (useSevenSegDisplay == true)
+        {
+          sevseg.setNumber(latency[r], 1);
+          sevseg.refreshDisplay();
+        }
       }
     }
 
@@ -246,21 +276,6 @@ void loop()
     Serial.print(latencyMin);
     Serial.print("ms \n");
 
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.setTextSize(2);
-    display.println("RESULTS:");
-    display.setTextSize(1);
-    display.drawLine(0, 17, 127, 17, 1);
-    display.setCursor(0, 21);
-    display.print("Avrg Latency: ");
-    display.println(latencyAvrg);
-    display.print("\nMax Latency:  ");
-    display.println(latencyMax);
-    display.print("\nMin Latency:  ");
-    display.println(latencyMin);
-    display.display();
-
     if (printRaw == true)
     {
       // Print Timestamp and Data Arrays over Serial during last run
@@ -285,17 +300,17 @@ void loop()
   if (run == true)
   {
 
-    if ((millis() - displayTime) <= 2000 && latencyMin < 1023)
+    if ((millis() - displayTime) <= 2000 && latencyMin < 1023 && useSevenSegDisplay == true)
     {
       sevseg.setNumberF(latencyMin, 1);
       sevseg.setSegmentsDigit(0, 8);
     }
-    if ((millis() - displayTime) > 2000 && (millis() - (displayTime)) <= 4000)
+    if ((millis() - displayTime) > 2000 && (millis() - (displayTime)) <= 4000 && useSevenSegDisplay == true)
     {
       sevseg.setNumberF(latencyAvrg, 1);
       sevseg.setSegmentsDigit(0, 64);
     }
-    if ((millis() - displayTime) > 4000 && (millis() - (displayTime)) <= 6000)
+    if ((millis() - displayTime) > 4000 && (millis() - (displayTime)) <= 6000 && useSevenSegDisplay == true)
     {
       sevseg.setNumberF(latencyMax, 1);
       sevseg.setSegmentsDigit(0, 1);
@@ -304,9 +319,55 @@ void loop()
     {
       displayTime = millis();
     }
+
+    if (useOledDisplay == true)
+    {
+      if ((millis() - displayTime) <= 3000 && useOledDisplay == true && oledResultWritten == false)
+      {
+        // Output Results on OLED
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.setTextSize(2);
+        display.println("RESULTS:");
+        display.setTextSize(1);
+        display.drawLine(0, 17, 127, 17, 1);
+        display.setCursor(0, 21);
+        display.print("Avrg Latency: ");
+        display.println(latencyAvrg);
+        display.print("\nMax Latency:  ");
+        display.println(latencyMax);
+        display.print("\nMin Latency:  ");
+        display.println(latencyMin);
+        display.display();
+        oledResultWritten = true;
+      }
+      if ((millis() - displayTime) > 3000 && useOledDisplay == true && oledResultWritten == true)
+      {
+        // Output OLED Display Graph
+        display.clearDisplay();
+        display.drawLine(6, 0, 6, 54, SSD1306_WHITE);
+        display.drawLine(6, 54, 127, 54, SSD1306_WHITE);
+        display.setCursor(0, 0);
+        display.write("1");
+        display.setCursor(0, 46);
+        display.write("0");
+        display.setCursor(110, 46);
+        display.write("100");
+        display.setCursor(0, 56);
+        display.write("Average Latency: ");
+        display.print(latencyAvrg / 10);
+        // Draw High Res Graph
+        for (int j = 0; j < 1000; j += 5)
+        {
+          display.drawPixel(((Timestamps[j] / 8) + 6), (((int)ScreenBright[j] / -14) + 54), SSD1306_WHITE);
+        }
+        display.display();
+        oledResultWritten = false;
+      }
+    }
   }
 
-  if (run == false)
+  if (run == false && useSevenSegDisplay == true)
   {
     sevseg.setNumberF(0000, 1);
   }
