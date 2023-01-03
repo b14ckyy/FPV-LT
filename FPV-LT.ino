@@ -5,13 +5,13 @@
 // https://github.com/DeanIsMe/SevSeg
 
 //*************************SETTINGS*************************
-int repeats = 5;                // Number of test iterations to average result
-int pauseTime = 1500;           // Time between measurements to let camera finish adjustment (in ms)
-int brightnessThreshold = 10;   // threshold in mV to detect image change on screen. Raise if video noise causes false triggers
-bool printRaw = true;           // Print raw measurement data of the last run over serial
-bool printEveryResult = true;   // Print every measurement over Serial
-bool useSevenSegDisplay = true; // Use seven segment Display outputs (Only Arduino Mega)
-bool useOledDisplay = true;     // Enable SSD1306 Display output
+int repeats = 5;                 // Number of test iterations to average result
+int pauseTime = 1500;            // Time between measurements to let camera finish adjustment (in ms)
+int brightnessThreshold = 10;    // threshold in mV to detect image change on screen. Raise if video noise causes false triggers
+bool printRaw = true;            // Print raw measurement data of the last run over serial
+bool printEveryResult = true;    // Print every measurement over Serial
+bool useSevenSegDisplay = false; // Use seven segment Display outputs (Only Arduino Mega)
+bool useOledDisplay = true;      // Enable SSD1306 Display output
 
 //************************DON'T TOUCH***********************
 unsigned int Uptime;
@@ -197,7 +197,7 @@ void loop()
           display.write("Latency: ");
           display.print(latency[r] / 10);
           display.display();
-          }
+        }
       }
       // Draw Graph
       for (int j = 0; j < 1000; j += 5)
