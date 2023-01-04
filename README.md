@@ -3,6 +3,8 @@ FPV Latency Tester - Fully automated Glass-to-Glass Latency Test
 
 This tool does exactly what it's name suggests. It tests the Latency of FPV systems, simply by pressing a button. It also delivers some basic statistics and provides data for further analysis over Serial to your PC or Tablet. It can Display Data over a cheap 7-Segment 4-Digit LED Display or a SSD1306 OLED Display. 
 
+![Prototype](https://user-images.githubusercontent.com/33039058/210649118-91d39e82-e4f1-4a75-bb7d-b8528d4e0fe5.JPG)
+
 # WHY? - Because! 
 Actually this just started as a funny idea and practice Project. I just started to learn programming again (15 years after I did some rudimentary C Stuff in school) and this was my second personal training project with an actual practical use. After two long evenings it turned out to work so well, that I decided to make it a full blown project and also publish it as soon as all main functionality is there. There is still some work to do to optimize it but that will be done later. 
 
